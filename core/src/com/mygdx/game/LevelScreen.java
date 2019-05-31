@@ -1,58 +1,85 @@
 package com.mygdx.game;
 
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.mygdx.game.actor.BaseActor;
+import com.mygdx.game.actor.Explosion;
 import com.mygdx.game.actor.Rock;
-import com.mygdx.game.actor.Starfish;
-import com.mygdx.game.actor.Turtle;
+import com.mygdx.game.actor.Spaceship;
 
 public class LevelScreen extends BaseScreen {
-    private Turtle turtle;
-    private boolean win;
-
+    private Spaceship spaceship;
+    private boolean gameOver = false;
 
     @Override
     public void initialize() {
-        BaseActor ocean = new BaseActor(0, 0, mainStage);
-        ocean.loadTexture("assets/water-border.jpg");
-        ocean.setSize(1200, 800);
-        BaseActor.setWorldBounds(ocean);
-        new Starfish(400, 400, mainStage);
-        new Starfish(500, 100, mainStage);
-        new Starfish(100, 450, mainStage);
-        new Starfish(200, 250, mainStage);
-        new Rock(200, 150, mainStage);
-        new Rock(100, 300, mainStage);
-        new Rock(300, 350, mainStage);
-        new Rock(450, 200, mainStage);
-        turtle = new Turtle(20, 20, mainStage);
+        BaseActor space = new BaseActor(0, 0, mainStage);
+        space.loadTexture("assets/space.png");
+        space.setSize(800, 600);
+        BaseActor.setWorldBounds(space);
+        spaceship = new Spaceship(400, 300, mainStage);
 
-        win = false;
+        new Rock(600, 500, mainStage);
+        new Rock(600, 300, mainStage);
+        new Rock(600, 100, mainStage);
+        new Rock(400, 100, mainStage);
+        new Rock(200, 100, mainStage);
+        new Rock(200, 300, mainStage);
+        new Rock(200, 500, mainStage);
+        new Rock(400, 500, mainStage);
+
     }
 
     @Override
     public void update(float dt) {
-        for (BaseActor rockActor : BaseActor.getList(mainStage, "com.mygdx.game.actor.Rock")) turtle.preventOverlap(rockActor);
-        for (BaseActor starfishActor : BaseActor.getList(mainStage, "com.mygdx.game.actor.Starfish")) {
-            Starfish starfish = (Starfish) starfishActor;
-            if (turtle.overlaps(starfish) && !starfish.collected) {
-                starfish.collected = true;
-                starfish.clearActions();
-                starfish.addAction(Actions.fadeOut(1));
-                starfish.addAction(Actions.after(Actions.removeActor()));
-                Whirlpool whirl = new Whirlpool(0, 0, mainStage);
-                whirl.centerAtActor(starfish);
-                whirl.setOpacity(0.25f);
+        for (BaseActor rockActor : BaseActor.getList(mainStage, "com.mygdx.game.actor.Rock")) {
+            if (rockActor.overlaps(spaceship)) {
+                if (spaceship.shieldPower <= 0) {
+                    Explosion boom = new Explosion(0, 0, mainStage);
+                    boom.centerAtActor(spaceship);
+                    spaceship.remove();
+                    spaceship.setPosition(-1000, -1000);
+
+                    BaseActor messageLose = new BaseActor(0, 0, uiStage);
+                    messageLose.loadTexture("assets/message-lose.png");
+                    messageLose.centerAtPosition(400, 300);
+                    messageLose.setOpacity(0);
+                    messageLose.addAction(Actions.fadeIn(1));
+                    gameOver = true;
+
+                } else {
+                    spaceship.shieldPower -= 34;
+                    Explosion boom = new Explosion(0, 0, mainStage);
+                    boom.centerAtActor(rockActor);
+                    rockActor.remove();
+                }
+            }
+            for (BaseActor laserActor : BaseActor.getList(mainStage, "com.mygdx.game.actor.Laser")) {
+                if (laserActor.overlaps(rockActor)) {
+                    Explosion boom = new Explosion(0, 0, mainStage);
+                    boom.centerAtActor(rockActor);
+                    laserActor.remove();
+                    rockActor.remove();
+                }
             }
         }
-        if (BaseActor.count(mainStage, "com.mygdx.game.actor.Starfish") == 0 && !win) {
-            win = true;
-            BaseActor youWinMessage = new BaseActor(0, 0, uiStage);
-            youWinMessage.loadTexture("assets/you-win.png");
-            youWinMessage.centerAtPosition(400, 300);
-            youWinMessage.setOpacity(0);
-            youWinMessage.addAction(Actions.delay(1));
-            youWinMessage.addAction(Actions.after(Actions.fadeIn(1)));
+        if (!gameOver && BaseActor.count(mainStage, "com.mygdx.game.actor.Rock") == 0) {
+            BaseActor messageWin = new BaseActor(0, 0, uiStage);
+            messageWin.loadTexture("assets/message-win.png");
+            messageWin.centerAtPosition(400, 300);
+            messageWin.setOpacity(0);
+            messageWin.addAction(Actions.fadeIn(1));
+            gameOver = true;
         }
     }
+
+    public boolean keyDown(int keycode) {
+        if (keycode == Input.Keys.X)
+            spaceship.warp();
+        if (keycode == Input.Keys.SPACE)
+            spaceship.shoot();
+        return false;
+    }
+
+
 }
